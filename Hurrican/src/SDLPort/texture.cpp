@@ -45,7 +45,7 @@ constexpr int ETC1_HEADER_SIZE = 16;
 
 constexpr int PVRTC_HEADER_SIZE = 52;
 
-enum { PVRTC_RGB_2BPP = 0, PVRTC_RGBA_2BPP, PVRTC_RGB_4BPP, PVRTC_RGBA_4BPP };
+enum { PVRTC_RGB_2BPP = 0, PVRTC_RGBA_2BPP, PVRTC_RGB_4BPP, PVRTC_RGBA_4BPP, PVRTC2_RGBA_2BPP, PVRTC2_RGBA_4BPP };
 #endif
 
 // DKS - Textures are now managed in DX8Sprite.cpp in new TexturesystemClass.
@@ -179,23 +179,23 @@ bool load_texture(image_t &image, GLuint &new_texture) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
         if (image.compressed) {
-            glCompressedTexImage2D(GL_TEXTURE_2D, 0, image.format, image.w, image.h, 0, image.data.size(),
+            // LoadFileToMemory adds one byte to the end of files...
+            size_t sz = image.data.size() - image.offset - 1;
+            glCompressedTexImage2D(GL_TEXTURE_2D, 0, image.format, image.w, image.h, 0, sz,
                                    image.data.data() + image.offset);
         } else {
             glTexImage2D(GL_TEXTURE_2D, 0, image.format, image.w, image.h, 0, image.format, image.type,
                          image.data.data());
         }
 
-#ifndef NDEBUG
         int error = glGetError();
         if (error != 0) {
             Protokoll << "GL load_texture Error " << error << std::endl;
-            Protokoll << "Format " << std::hex << image.format << std::dec << " W " << image.w << " H " << image.h
+            Protokoll << "Compressed? " << image.compressed << " Format " << std::hex << image.format << std::dec << " W " << image.w << " H " << image.h
                       << " S " << image.data.size() << " Data " << std::hex << reinterpret_cast<std::uintptr_t>(image.data.data())
                       << std::dec << " + " << image.offset << std::endl;
             return false;
         }
-#endif
 
     } else {
         Protokoll << "ERROR Image data reference is NULL" << std::endl;
@@ -293,6 +293,14 @@ bool loadImagePVRTC(image_t &image, const std::string &fullpath) {
                 image.format = GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG;
                 pvrtc_bitperpixel = 4;
                 break;
+            case PVRTC2_RGBA_2BPP:
+                image.format = GL_COMPRESSED_RGBA_PVRTC_2BPPV2_IMG;
+                pvrtc_bitperpixel = 2;
+                break;
+            case PVRTC2_RGBA_4BPP:
+                image.format = GL_COMPRESSED_RGBA_PVRTC_4BPPV2_IMG;
+                pvrtc_bitperpixel = 4;
+                break;
             default:
                 Protokoll << "ERROR Unknown PVRTC format " << std::hex << pvrtc_buffer32[2] << std::endl;
                 // delete [] image.data;
@@ -301,17 +309,16 @@ bool loadImagePVRTC(image_t &image, const std::string &fullpath) {
                 return false;
         }
 
-        image.h = pvrtc_buffer32[6];
         image.w = pvrtc_buffer32[7];
+        image.h = pvrtc_buffer32[6];
         pvrtc_depth = pvrtc_buffer32[8];
         // image.size      = (image.w * image.h * pvrtc_depth * pvrtc_bitperpixel) / 8;
-        image.offset = PVRTC_HEADER_SIZE;
+        image.offset = PVRTC_HEADER_SIZE + pvrtc_buffer32[12];
         image.type = 0; /* dont care */
         image.compressed = true;
 
-        Protokoll << "Loaded PVRTC type " << std::dec << pvrtc_buffer32[2] << " for " << fullpath << std::endl;
-
 #ifndef NDEBUG
+        Protokoll << "Loaded PVRTC type " << std::dec << pvrtc_buffer32[2] << " for " << fullpath << std::endl;
         Protokoll << "Version " << std::hex << pvrtc_buffer32[0] << "\nFlags " << std::dec << pvrtc_buffer32[1]
                   << "\nPFormatA " << pvrtc_buffer32[2] << "\nPFormatB " << pvrtc_buffer32[3] << "\nColorS "
                   << pvrtc_buffer32[4] << "\nChanType " << pvrtc_buffer32[5] << "\nHeight " << pvrtc_buffer32[6]
