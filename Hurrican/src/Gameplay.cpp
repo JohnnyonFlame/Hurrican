@@ -648,7 +648,11 @@ void CreateDefaultControlsConfig(int player) {
         Player[0].JoystickIndex = 0;
         Player[0].JoystickSchwelle = 500.0f;
         Player[0].JoystickMode = JOYMODE_JOYPAD;
+#if defined(DEFAULT_GAMEPAD)
+        Player[0].ControlType = CONTROLTYPE_JOY;
+#else
         Player[0].ControlType = CONTROLTYPE_KEYBOARD;
+#endif
 
 #if defined(GCW)
         // On GCW Zero, the Player 1 default joy index is the internal controls and both players use joystick:
