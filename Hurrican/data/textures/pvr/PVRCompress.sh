@@ -56,8 +56,8 @@ do
 
   convert ../$f -background transparent -extent ${P2W}x${P2H} PNG32:../png32/$f.png
 
-  ./PVRTexTool -fPVRTC2 -i../png32/$f.png -o tc2/$f.pvr
-  ./PVRTexTool -fPVRTC4 -i../png32/$f.png -o tc4/$f.pvr
+  ./PVRTexToolCLI -ics lRGB -f "PVRTCII_2BPP,UB,lRGB" -i ../png32/$f.png -o tc2/$f.pvr
+  ./PVRTexToolCLI -ics lRGB -f "PVRTCII_4BPP,UB,lRGB" -i ../png32/$f.png -o tc4/$f.pvr
 #  ./PVRTexTool -f1555 -i../png32/$f.png -o XRGB1555/$f.pvr
 #  mv XRGB1555/$f.pvr XRGB1555/$f.XRGB1555
 
